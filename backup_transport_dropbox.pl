@@ -5,8 +5,21 @@
 # copyright@cpanel.net                                         http://cpanel.net
 # This code is subject to the cPanel license. Unauthorized copying is prohibited
 
+BEGIN {
+    unshift @INC, '/usr/local/share/perl5/';
+}
+
 use strict;
 use warnings;
+use IO::File;
+use WebService::Dropbox;
+
+# Create and setup our dropbox object
+my $dropbox = WebService::Dropbox->new({
+        key =>    'MY_APP_KEY',       # App Key
+        secret => 'MY_APP_SECRET'     # App Secret
+    });
+$dropbox->access_token('MY_ACCESS_TOKEN');
 
 # These are the commands that a custom destination script must process
 my %commands = (
@@ -43,18 +56,109 @@ $commands{$cmd}->(@args);
 sub usage {
     my @cmds = sort keys %commands;
     print STDERR "This script is for implementing a custom backup destination\n";
-    print STDERR "It requires the following arguments:      print STDERR "It rgs\n";
-    print STDERR "These are the valid commands:  @cmds    print STDERR "These are the valid commands:  @cmds  entat    print STDERR "Thesemmands    print STDERR "These are the valid commands:  @cmds    print STDERR "Thesen
+    print STDERR "It requires the following arguments:  cmd, local_dir, cmd_args\n";
+    print STDERR "These are the valid commands:  @cmds\n";
+    exit 1;
+}
+
+#
+# Relative paths are under $local_dir
+#
+sub convert_path {
+    my ($path) = @_;
+
+    return '' if $path eq '/';
+    $path = $1 if ( $path  =~ s|(.+)/\z|| );
+
+    if ( $path =~ m|^/| ) {
+        return $path;
+    }
+    else {
+        return File::Spec->catdir( $local_dir, $path );
+    }
+}
+
+#
+# This portion contains the implementations for the various commands
+# that the script needs to support in order to implement a custom destination
 #
 
+#
+# Copy a local file to a remote destination
+#
+sub my_put {
+    my ( $local, $remote, $host, $user, $password ) = @_;
+    my $optional_params = { 'mode' => 'overwrite' };
 
+    $remote = convert_path($remote);
 
-  print STDERR "These are the valid commands:  @cmds    print STDERR "These arCop  print STDERR "These are the valid commands:  @cmds    print STDERR "These arCop  the results of doing an ls operation
+    my $fh_upload = IO::File->new($local);
+
+    $dropbox->upload( $remote, $fh_upload, $optional_params ) or die $dropbox->error;
+
+    $fh_upload->close;
+
+    return;
+}
+
+#
+# Copy a remote file to a local destination
+#
+sub my_get {
+    my ( $remote, $local, $host, $user, $password ) = @_;
+
+    $remote = convert_path($remote);
+
+    my $fh = IO::File->new($local, '>');
+
+    $dropbox->download($remote, $fh);
+
+    $fh->close;
+
+    return;
+}
+
+#
+# Print out the results of doing an ls operation
 # The calling program will expect the data to be
 # in the format supplied by 'ls -l' and have it
 # printed to STDOUT
 #
 sub my_ls {
+    my ( $path, $host, $user, $password ) = @_;
+
+    $path = convert_path($path);
+
+    my %contents;
+
+    my $result = $dropbox->list_folder($path);
+
+    while($result) {
+
+        foreach my $entry ( @{$result->{'entries'}} ) {
+
+            my $name = $entry->{'name'};
+            my $type = $entry->{'.tag'} eq 'folder' ? 'd' : '-';
+            my $size = $entry->{'size'};
+
+            $contents{$name} = {
+                'type'  => $type,
+                'size'  => ( $size ? $size : 1) ,
+            };
+        }
+
+        last unless $result->{'has_more'};
+
+        $result = $dropbox->list_folder_continue( $result->{'cursor'});
+    }
+
+    # The output must look like the results of "ls -l" & contain perms for Historical Reasons
+    my @ls = map { "$contents{$_}{'type'}rw-r--r-- X X X $contents{$_}{'size'} X X X $_" } sort keys %contents;
+
+    foreach my $line (@ls) {
+        print "$line\n";
+    }
+
     return;
 }
 
@@ -62,6 +166,12 @@ sub my_ls {
 # Create a directory on the remote destination
 #
 sub my_mkdir {
+    my ( $path, $recurse, $host, $user, $password ) = @_;
+
+    $path = convert_path($path);
+
+    $dropbox->create_folder($path);
+
     return;
 }
 
@@ -74,6 +184,11 @@ sub my_mkdir {
 # will pass in as the local directory for subsequent calls
 #
 sub my_chdir {
+    my ( $path, $host, $user, $password ) = @_;
+
+    print convert_path($path);
+    print "\n";
+
     return;
 }
 
@@ -81,6 +196,12 @@ sub my_chdir {
 # Recursively delete a directory on the remote destination
 #
 sub my_rmdir {
+    my ( $path, $host, $user, $password ) = @_;
+
+    $path = convert_path($path);
+
+    $dropbox->delete($path);
+
     return;
 }
 
@@ -88,5 +209,11 @@ sub my_rmdir {
 # Delete an individual file on the remote destination
 #
 sub my_delete {
+    my ( $path, $host, $user, $password ) = @_;
+
+    $path = convert_path($path);
+
+    $dropbox->delete($path);
+
     return;
 }
