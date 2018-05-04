@@ -1,18 +1,18 @@
 # A cPanel custom backup transport for Dropbox
-> This script provides a method to automatically upload backups from your cPanel server to Dropbox, utilizing Dropbox's [API](https://www.dropbox.com/developers/documentation) via cpan [WebService::Dropbox](http://search.cpan.org/~askadna/WebService-Dropbox-0.03/lib/WebService/Dropbox.pm), through the cPanel's [Custom Backup Transport](https://documentation.cpanel.net/display/66Docs/Custom+Backup+Destination+Guide). 
+> This script provides a method to automatically upload backups from your cPanel server to Dropbox, utilizing Dropbox's [API](https://www.dropbox.com/developers/documentation) via CPAN [WebService::Dropbox](http://search.cpan.org/~askadna/WebService-Dropbox-0.03/lib/WebService/Dropbox.pm), through the cPanel's [Custom Backup Transport](https://documentation.cpanel.net/display/66Docs/Custom+Backup+Destination+Guide). 
 
-The cPanel backup system provides lots of flexibility and one of the awesome features is the ability to create your own custom backup transport. In cPanel, a backup transport is essentially a backup destination or method to move backups to a secondary/remote server for safe keeping. The custom backup transport feature allows you to specify a script which the backup system will pass arguments to; arguments common with uploading files in FTP, e.g. 'put $filename'. Reading over the documentation, it may at first appear a daunting task; however, today we'll walk you through the process by creating a backup destination utilizing Dropbox and their very thoroughly documented API.
+The cPanel backup system provides lots of flexibility, and one of the awesome features is the ability to create custom backup transports. In cPanel, a backup transport is essentially a backup destination or method to move backups to a secondary/remote server for safe keeping. The custom backup transport feature allows you to specify a script which the backup system will pass arguments to; arguments common with uploading files in FTP, e.g. 'put $filename'. Reading over the documentation, it may at first appear a daunting task; however, today we'll walk you through the process by creating a backup destination utilizing Dropbox and their very thoroughly documented API.
 
 Special thanks to [@Tim Mullin](https://github.com/timmullin) for helping me get this off the ground by providing a PoC.
 
 ## Requirements
 ```
 cPanel 70+
-cpan WebService::Dropbox
+CPAN WebService::Dropbox
 ```
 
 ## Installation
-Install cpan WebService::Dropbox
+Install CPAN WebService::Dropbox
 ```
 # CentOS 7
 sudo cpan WebService::Dropbox
@@ -21,7 +21,7 @@ sudo cpan WebService::Dropbox
 sudo yum -y install perl-YAML
 sudo cpan WebService::Dropbox
 ```
-During the cpan installation for WebService::Dropbox, you may be prompted "*...just needed temporarily during building or testing. Do you want to install it permanently?*" These are relatively small modules and having them installed will help with future cpan module installations, so I chose "yes" for each prompt.
+During the CPAN installation for WebService::Dropbox, you may be prompted "*...just needed temporarily during building or testing. Do you want to install it permanently?*" These are relatively small modules and having them installed will help with future CPAN module installations, so I chose "yes" for each prompt.
 
 Download the script
 ```
