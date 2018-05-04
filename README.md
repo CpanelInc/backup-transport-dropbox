@@ -49,6 +49,6 @@ We're now ready to configure the transport in WHM. Head over to *WHM Â» Backup Â
 
 ![Create the custom backup transport in WHM](https://user-images.githubusercontent.com/25645218/39636767-cb5ab618-4f86-11e8-8bfd-0f4ca46595a8.png)
 
-Be sure to hit Save and Validate Destination at the bottom of the screen. 
+Be sure to hit *Save and Validate Destination* at the bottom of the screen. 
 
 Congratulations, you've just created your first custom backup transport script, how cool is that?! Feel free to fork us on GitHub and be sure to share with us your custom backup transport scripts!
