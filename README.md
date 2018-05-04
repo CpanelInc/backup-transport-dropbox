@@ -37,17 +37,17 @@ cp -av backup-transport-dropbox/backup_transport_dropbox.pl /usr/local/bin/
 ## Configure
 If you don't already have a Dropbox account, create one [here](https://www.dropbox.com/login). Once you have an account, head over to their developer section to [create an app](https://www.dropbox.com/developers/apps/create)(this is required to use their API). You'll be prompted to select the typical *Dropbox API* or the *Business API*. For our testing purposes, we'll stick with the simple/free Dropbox API. For step two of the app creation process, select *Full Dropbox*. Finally, set a name for your app; I chose 'cpanel-backups'.
 
-image-here
+![Dropbox - Create an App](https://user-images.githubusercontent.com/25645218/39636904-2b13308a-4f87-11e8-8f44-0edcd6d1d92b.png)
 
 After creating the Dropbox app, you'll be redirected to the *Settings* page for your app, which will provide your API credentials. Write down the *App Key*, *App Secret*, click the *Generate access token* button and write it down as well
 
-image-here
+![Dropbox App Settings](https://user-images.githubusercontent.com/25645218/39636818-eed9ad1a-4f86-11e8-84a9-6f645f9bd9aa.png)
 
 With your favorite text editor, take the Dropbox credentials you saved earlier and update the *MY_APP_KEY*, *MY_APP_SECRET*, and *MY_ACCESS_TOKEN* placeholders in the transport script.
 
 We're now ready to configure the transport in WHM. Head over to *WHM » Backup » Backup Configuration* and scroll down to *Additional Destinations*. Under *Destination Type*, select *Custom*, then *Create new destination*. Configure the destination as below(note, since we're using the API keys directly in the transport script, you can enter anything for the host, user, and password):
 
-image-here
+![Create the custom backup transport in WHM](https://user-images.githubusercontent.com/25645218/39636767-cb5ab618-4f86-11e8-8bfd-0f4ca46595a8.png)
 
 Be sure to hit Save and Validate Destination at the bottom of the screen. 
 
