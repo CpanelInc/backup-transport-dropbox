@@ -1,6 +1,6 @@
 #!/usr/local/cpanel/3rdparty/bin/perl
 
-# cpanel - scripts/custom_backup_destination.pl.skeleton      Copyright 2013 cPanel, Inc.
+# cpanel - backup_transport_dropbox.pl               Copyright 2018 cPanel, Inc.
 #                                                           All rights Reserved.
 # copyright@cpanel.net                                         http://cpanel.net
 # This code is subject to the cPanel license. Unauthorized copying is prohibited
