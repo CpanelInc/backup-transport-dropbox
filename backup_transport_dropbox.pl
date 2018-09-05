@@ -69,8 +69,8 @@ sub usage {
 sub convert_path {
     my ($path) = @_;
 
-    return '' if $path eq '/';
-    $path = $1 if ( $path  =~ s|(.+)/\z|| );
+    return '' if ( $path =~ s@^(/|)\z@@ );
+    $path = $1 if ( $path  =~ s@(.+)/\z@@ );
 
     if ( $path =~ m|^/| ) {
         return $path;
