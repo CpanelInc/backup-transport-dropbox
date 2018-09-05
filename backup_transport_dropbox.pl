@@ -14,7 +14,9 @@ use warnings;
 use IO::File;
 use WebService::Dropbox;
 
-our $VERSION = '1.0';
+# variables
+our $VERSION = '1.01';
+our $UPLOAD_MAX = 1024 * 1024 * 145; # dropbox requires 150M limit on single put, 145 to be safe
 
 # Create and setup our dropbox object
 my $dropbox = WebService::Dropbox->new({
@@ -94,14 +96,80 @@ sub my_put {
 
     $remote = convert_path($remote);
 
-    my $fh_upload = IO::File->new($local);
+    # decide if we need multipart upload or not
+    my $file_size = _get_file_size($local);
+    if ( $file_size > $UPLOAD_MAX ) {
+        my ( $res, $msg ) = _upload_multipart( $local, $remote, $optional_params);
+        if (!$res) {
+             die Cpanel::Transport::Exception->new( \@_, 0, $msg );
+        }
+    } else {
+        my ( $res, $msg ) = _upload_single->( $local, $remote, $optional_params);
+        if (!$res) {
+             die Cpanel::Transport::Exception->new( \@_, 0, $msg );
+        }
+    }
+}
 
-    $dropbox->upload( $remote, $fh_upload, $optional_params ) or die $dropbox->error;
+sub _upload_multipart {
+    my ( $local, $remote, $optional_params) = @_;
+    my ($fh, $data, $length);
+    eval {
+        # open in binary mode since we will be dealing with compressed files
+        open( $fh, '<', $local ) or die "Could not open $local: $!";
+        binmode($fh) or die "Could not set $local to binary mode: $!";
 
+        # read up to $UPLOAD_MAX at a time
+        while ( ( $length = read( $fh, $data, $UPLOAD_MAX ) != 0 ) {
+
+            # do we need to start the session?
+            if (!$session_id) {
+                # do upload_session_start
+            } else {
+                # we have $session_id, but do we need to append or finish?
+                if ( $length < $UPLOAD_MAX ) {
+                    # do upload_session_finish
+                } else {
+                    # do upload_session_append
+                }
+            }
+        }
+
+        # read will return undef if there is an error (vs zero for end of file)
+        die "Failure reading $local:  $!" unless defined $length;
+        close($fh);
+    }
+
+    # catch errors from eval
+    if ($@) {
+        close($fh) if $fh;
+        my $error_message = $@;
+        return ( 0, $error_message );
+    }
+}
+
+sub _upload_session_start {
+}
+
+sub _upload_session_append {
+}
+
+sub _upload_session_finish {
+}
+
+sub _upload_single {
+    my ( $local, $remote, $optional_params) = @_;
+    my $fh = IO::File->new($local);
+    $dropbox->upload( $remote, $fh, $optional_params ) or die $dropbox->error;
     $fh_upload->close;
-
     return;
 }
+
+sub _get_file_size {
+    my ($file) = @_;
+    return ( -s $file || 0 );
+}
+
 
 #
 # Copy a remote file to a local destination
