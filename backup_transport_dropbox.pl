@@ -69,7 +69,9 @@ sub usage {
 sub convert_path {
     my ($path) = @_;
 
+    # return empty string if path is slash or empty
     return '' if ( $path =~ s@^(/|)\z@@ );
+    # strip trailing slash
     $path = $1 if ( $path  =~ s@(.+)/\z@@ );
 
     if ( $path =~ m|^/| ) {
