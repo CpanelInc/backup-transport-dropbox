@@ -14,7 +14,7 @@ use warnings;
 use IO::File;
 use WebService::Dropbox;
 
-our $VERSION = '1.0';
+our $VERSION = '1.01';
 
 # Create and setup our dropbox object
 my $dropbox = WebService::Dropbox->new({
@@ -69,8 +69,10 @@ sub usage {
 sub convert_path {
     my ($path) = @_;
 
-    return '' if $path eq '/';
-    $path = $1 if ( $path  =~ s|(.+)/\z|| );
+    # return empty string if path is slash or empty
+    return '' if ( $path =~ s@^(/|)\z@@ );
+    # strip trailing slash
+    $path = $1 if ( $path  =~ s@(.+)/\z@@ );
 
     if ( $path =~ m|^/| ) {
         return $path;
