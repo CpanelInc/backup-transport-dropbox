@@ -14,7 +14,7 @@ use warnings;
 use IO::File;
 use WebService::Dropbox;
 
-our $VERSION = '1.0';
+our $VERSION = '1.01';
 
 # Create and setup our dropbox object
 my $dropbox = WebService::Dropbox->new({
