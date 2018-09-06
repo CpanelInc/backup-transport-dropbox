@@ -184,7 +184,7 @@ sub my_mkdir {
 
     if ($dropbox->error) {
         my $json = JSON::XS->new->ascii->decode($dropbox->error);
-        if ( $json->{'error_summary'} =~ s@^1path/conflict/folder@@ ) {
+        if ( $json->{'error_summary'} =~ s@1path/conflict/folder@@ ) {
              return;
         } else {
             print STDERR $dropbox->error;
