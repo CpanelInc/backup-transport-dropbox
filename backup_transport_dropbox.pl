@@ -14,7 +14,7 @@ use warnings;
 use IO::File;
 use WebService::Dropbox;
 
-our $VERSION = '1.01';
+our $VERSION = '1.02';
 
 # Create and setup our dropbox object
 my $dropbox = WebService::Dropbox->new({
@@ -171,11 +171,25 @@ sub my_ls {
 #
 sub my_mkdir {
     my ( $path, $recurse, $host, $user, $password ) = @_;
-
     $path = convert_path($path);
 
-    $dropbox->create_folder($path);
+    # not sure how to get this method to not print to stderr...
+    # don't want to call an extra module...
+    do {
+        local *STDERR;
+        open STDERR, '>', File::Spec->devnull() or die "could not open STDERR: $!\n";
+        $dropbox->create_folder($path);
+        close STDERR;
+    };
 
+    if ($dropbox->error) {
+        my $json = JSON::XS->new->ascii->decode($dropbox->error);
+        if ( $json->{'error_summary'} =~ s@^path/conflict/folder@@ ) {
+             return;
+        } else {
+            print STDERR $dropbox->error;
+        }
+     }
     return;
 }
 
