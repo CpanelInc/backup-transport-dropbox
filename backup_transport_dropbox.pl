@@ -14,7 +14,9 @@ use warnings;
 use IO::File;
 use WebService::Dropbox;
 
-our $VERSION = '1.02';
+# variables
+our $VERSION = '1.03';
+our $UPLOAD_MAX = 1024 * 1024 * 145; # dropbox requires 150M limit on single put, 145 to be safe
 
 # Create and setup our dropbox object
 my $dropbox = WebService::Dropbox->new({
@@ -93,16 +95,24 @@ sub convert_path {
 sub my_put {
     my ( $local, $remote, $host, $user, $password ) = @_;
     my $optional_params = { 'mode' => 'overwrite' };
+    my $fh = IO::File->new($local);
 
     $remote = convert_path($remote);
 
-    my $fh_upload = IO::File->new($local);
-
-    $dropbox->upload( $remote, $fh_upload, $optional_params ) or die $dropbox->error;
-
-    $fh_upload->close;
-
+    # decide if we need multipart upload or not
+    my $file_size = _get_file_size($local);
+    if ( $file_size > $UPLOAD_MAX ) {
+        $dropbox->upload_session( $remote, $fh, $optional_params);
+    } else {
+        $dropbox->upload( $remote, $fh, $optional_params);
+    }
+    $fh->close;
     return;
+}
+
+sub _get_file_size {
+    my ($file) = @_;
+    return ( -s $file || 0 );
 }
 
 #
