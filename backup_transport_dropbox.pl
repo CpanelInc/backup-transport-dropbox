@@ -13,7 +13,6 @@ use strict;
 use warnings;
 use IO::File;
 use WebService::Dropbox;
-use Data::Dumper;
 
 # variables
 our $VERSION = '1.02';
@@ -96,114 +95,18 @@ sub convert_path {
 sub my_put {
     my ( $local, $remote, $host, $user, $password ) = @_;
     my $optional_params = { 'mode' => 'overwrite' };
+    my $fh = IO::File->new($local);
 
     $remote = convert_path($remote);
 
     # decide if we need multipart upload or not
     my $file_size = _get_file_size($local);
     if ( $file_size > $UPLOAD_MAX ) {
-        _upload_multipart( $local, $remote, $optional_params);
+        $dropbox->upload_session( $remote, $fh, $optional_params);
     } else {
-        _upload_single( $local, $remote, $optional_params);
+        $dropbox->upload( $remote, $fh, $optional_params);
     }
-}
-
-sub _upload_multipart {
-    my ($local, $remote, $optional_params) = @_;
-    my ($fh, $data, $length, $session_id, $offset);
-#    eval {
-        # open in binary mode since we will be dealing with compressed files
-        open( $fh, '<', $local ) or die "Could not open $local: $!";
-        binmode($fh) or die "Could not set $local to binary mode: $!";
-
-        # read up to $UPLOAD_MAX at a time
-        while ( ( $length = read( $fh, $data, $UPLOAD_MAX ) ) != 0 ) {
-
-            # do we need to start the session?
-            if (!$session_id) {
-                # start upload session
-                print "start\n";
-                $session_id = _upload_session_start($data);
-            } else {
-                # we have $session_id, but do we need to append or finish?
-                if ( $length < $UPLOAD_MAX ) {
-                    # do finish session
-                    print "finish\n";
-                    $offset = $offset + $length;
-                    _upload_session_finish($data, $session_id, $offset, $remote);
-                } else {
-                    # do append session
-                    print "append\n";
-                    if (!$offset) {
-                        $offset = 1;
-                    } else {
-                        $offset = $offset + $length;
-                    }
-                    _upload_session_append($data, $session_id, $offset);
-                }
-            }
-        }
-
-        # read will return undef if there is an error (vs zero for end of file)
-        die "Failure reading $local:  $!" unless defined $length;
-        close($fh);
-#    };
-
-    # catch errors from eval
-#    if ($@) {
-#        close($fh) if $fh;
-#        my $error_message = $@;
-#        print "$error_message\n";
-#        return ( 0, $error_message );
-#    }
-}
-
-sub _upload_session_start {
-    my $data = @_;
-
-    my $result = $dropbox->upload_session_start($data);
-    if ( defined($result->{'session_id'}) && $result->{'session_id'} ne '' ) {
-         return $result->{'session_id'};
-    }
-}
-
-sub _upload_session_append {
-    my ($data, $session_id, $offset) = @_;
-
-    $dropbox->upload_session_append_v2($data, {
-        cursor => {
-            session_id => $session_id,
-            offset     => $offset
-            }
-        });
-}
-
-sub _upload_session_finish {
-    my ($data, $session_id, $offset, $remote) = @_;
-
-    $dropbox->upload_session_finish( $data, {
-        cursor => {
-            session_id => $session_id,
-            offset     => $offset
-            },
-        commit => {
-            path => $remote,
-            mode => 'add',
-            autorename => JSON::true,
-            mute => JSON::false
-            }
-        });
-}
-
-
-sub _upload_single {
-    my ( $local, $remote, $optional_params) = @_;
-    my $fh = IO::File->new($local);
-    $remote = convert_path($remote);
-
-    $dropbox->upload( $remote, $fh, $optional_params ) or die $dropbox->error;
-    $fh->close;
-    return;
+    close($fh);
 }
 
 sub _get_file_size {
