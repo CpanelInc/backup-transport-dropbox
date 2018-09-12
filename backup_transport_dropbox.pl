@@ -106,14 +106,14 @@ sub my_put {
     } else {
         $dropbox->upload( $remote, $fh, $optional_params);
     }
-    close($fh);
+    $fh->close;
+    return;
 }
 
 sub _get_file_size {
     my ($file) = @_;
     return ( -s $file || 0 );
 }
-
 
 #
 # Copy a remote file to a local destination
