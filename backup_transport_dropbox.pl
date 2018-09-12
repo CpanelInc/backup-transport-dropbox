@@ -104,12 +104,12 @@ sub my_put {
     if ( $file_size > $UPLOAD_MAX ) {
         _upload_multipart( $local, $remote, $optional_params);
     } else {
-        _upload_single->( $local, $remote, $optional_params);
+        _upload_single( $local, $remote, $optional_params);
     }
 }
 
 sub _upload_multipart {
-    my ( $local, $remote, $optional_params) = @_;
+    my ($local, $remote, $optional_params) = @_;
     my ($fh, $data, $length, $session_id, $offset);
 #    eval {
         # open in binary mode since we will be dealing with compressed files
@@ -119,25 +119,26 @@ sub _upload_multipart {
         # read up to $UPLOAD_MAX at a time
         while ( ( $length = read( $fh, $data, $UPLOAD_MAX ) ) != 0 ) {
 
-            # record our offset
-            $offset = $offset + $length;
-            print "offset:$offset\n";
-
             # do we need to start the session?
             if (!$session_id) {
                 # start upload session
                 print "start\n";
-                my $session_id = _upload_session_start($data);
-                print "session_id:$session_id\n";
+                $session_id = _upload_session_start($data);
             } else {
                 # we have $session_id, but do we need to append or finish?
                 if ( $length < $UPLOAD_MAX ) {
                     # do finish session
                     print "finish\n";
+                    $offset = $offset + $length;
                     _upload_session_finish($data, $session_id, $offset, $remote);
                 } else {
                     # do append session
                     print "append\n";
+                    if (!$offset) {
+                        $offset = 1;
+                    } else {
+                        $offset = $offset + $length;
+                    }
                     _upload_session_append($data, $session_id, $offset);
                 }
             }
@@ -167,7 +168,7 @@ sub _upload_session_start {
 }
 
 sub _upload_session_append {
-    my ($data, $session_id, $offset);
+    my ($data, $session_id, $offset) = @_;
 
     $dropbox->upload_session_append_v2($data, {
         cursor => {
@@ -178,7 +179,7 @@ sub _upload_session_append {
 }
 
 sub _upload_session_finish {
-    my ($data, $session_id, $offset, $remote);
+    my ($data, $session_id, $offset, $remote) = @_;
 
     $dropbox->upload_session_finish( $data, {
         cursor => {
@@ -198,6 +199,8 @@ sub _upload_session_finish {
 sub _upload_single {
     my ( $local, $remote, $optional_params) = @_;
     my $fh = IO::File->new($local);
+    $remote = convert_path($remote);
+
     $dropbox->upload( $remote, $fh, $optional_params ) or die $dropbox->error;
     $fh->close;
     return;
