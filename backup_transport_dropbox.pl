@@ -14,9 +14,11 @@ use warnings;
 use IO::File;
 use WebService::Dropbox;
 
+use Data::Dumper;
+
 # variables
 our $VERSION = '1.03';
-our $UPLOAD_MAX = 1024 * 1024 * 145; # dropbox requires 150M limit on single put, 145 to be safe
+our $UPLOAD_MAX = 1024 * 1024 * 32; # dropbox requires 150M limit on single put, 145 to be safe
 
 # Create and setup our dropbox object
 my $dropbox = WebService::Dropbox->new({
@@ -100,12 +102,109 @@ sub my_put {
     $remote = convert_path($remote);
 
     # decide if we need multipart upload or not
-    my $file_size = _get_file_size($local);
-    if ( $file_size > $UPLOAD_MAX ) {
-        $dropbox->upload_session( $remote, $fh, $optional_params);
+    my $size = _get_file_size($local);
+    if ( $size > $UPLOAD_MAX ) {
+        _upload_multipart( $local, $remote, $size, $optional_params); 
     } else {
-        $dropbox->upload( $remote, $fh, $optional_params);
+        _upload_single( $local, $remote, $optional_params);
     }
+    $fh->close;
+    return;
+}
+
+sub _upload_multipart {
+    my ($local, $remote, $remaining, $optional_params) = @_;
+    my ($fh, $data, $length, $session_id);
+    my $offset = 1;
+
+    open( $fh, '<', $local ) or die "Could not open $local: $!";
+    binmode($fh) or die "Could not set $local to binary mode: $!";
+
+    print "total:$remaining\n";
+    $remaining += 0;
+
+    # read up to $UPLOAD_MAX at a time
+    while ( $length = read( $fh, $data, $UPLOAD_MAX ) ) {
+
+        print "read:$length\n";
+        $length += 0;
+        # we have a session
+        if ($session_id) {
+            # do we need to append or finish?
+            if ( $remaining > $UPLOAD_MAX ) {
+                # do append
+                print "append ";
+                _upload_session_append($data, $session_id, $offset);
+                $offset += $length;
+                $remaining = $remaining - $length;
+                print "remaining:$remaining offset:$offset\n";
+                $remaining += 0;
+                $offset += 0;
+            } else {
+                # do finish
+                print "finish ";
+                _upload_session_finish($data, $session_id, $offset, $remote);
+                $remaining = $remaining - $length;
+                print "remaining:$remaining offset:$offset\n";
+            }
+        } else {
+            # start session
+            print "start ";
+            $session_id = _upload_session_start($data);
+            $remaining = $remaining - $length;
+            print "remaining:$remaining offset:$offset\n";
+            $remaining += 0;
+            $offset += 0;
+         }
+    }
+    die "Failure reading $local:  $!" unless defined $length;
+    close($fh);
+}
+
+sub _upload_session_start {
+    my $data = @_;
+
+    my $result = $dropbox->upload_session_start($data);
+    if ( defined($result->{'session_id'}) && $result->{'session_id'} ne '' ) {
+         return $result->{'session_id'};
+    }
+}
+
+sub _upload_session_append {
+    my ($data, $session_id, $offset) = @_;
+
+    my $result = $dropbox->upload_session_append_v2($data, {
+        cursor => {
+            session_id => $session_id,
+            offset     => $offset
+            }
+        });
+}
+
+sub _upload_session_finish {
+    my ($data, $session_id, $offset, $remote) = @_;
+
+    my $result = $dropbox->upload_session_finish( $data, {
+        cursor => {
+            session_id => $session_id,
+            offset     => $offset
+            },
+        commit => {
+            path => $remote,
+            mode => 'add',
+            autorename => JSON::true,
+            mute => JSON::false
+            }
+        });
+}
+
+
+sub _upload_single {
+    my ( $local, $remote, $optional_params) = @_;
+    my $fh = IO::File->new($local);
+    $remote = convert_path($remote);
+
+    $dropbox->upload( $remote, $fh, $optional_params ) or die $dropbox->error;
     $fh->close;
     return;
 }
