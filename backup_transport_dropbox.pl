@@ -5,26 +5,26 @@
 # copyright@cpanel.net                                         http://cpanel.net
 # This code is subject to the cPanel license. Unauthorized copying is prohibited
 
-BEGIN {
-    unshift @INC, '/usr/local/share/perl5/';
-}
-
 use strict;
 use warnings;
 use IO::File;
 use WebService::Dropbox;
 
-use Data::Dumper;
+BEGIN {
+    unshift @INC, '/usr/local/share/perl5/';
+}
 
 # variables
 our $VERSION = '1.03';
-our $UPLOAD_MAX = 1024 * 1024 * 32; # dropbox requires 150M limit on single put, 145 to be safe
+our $UPLOAD_MAX = 1024 * 1024 * 32;  # dropbox requires 150M limit on single put, 145 to be safe
 
 # Create and setup our dropbox object
-my $dropbox = WebService::Dropbox->new({
-        key =>    'MY_APP_KEY',       # App Key
-        secret => 'MY_APP_SECRET'     # App Secret
-    });
+my $dropbox = WebService::Dropbox->new(
+    {
+        key    => 'MY_APP_KEY',      # App Key
+        secret => 'MY_APP_SECRET'    # App Secret
+    }
+);
 $dropbox->access_token('MY_ACCESS_TOKEN');
 
 # These are the commands that a custom destination script must process
@@ -75,8 +75,9 @@ sub convert_path {
 
     # return empty string if path is slash or empty
     return '' if ( $path =~ s@^(/|)\z@@ );
+
     # strip trailing slash
-    $path = $1 if ( $path  =~ s@(.+)/\z@@ );
+    $path = $1 if ( $path =~ s@(.+)/\z@@ );
 
     if ( $path =~ m|^/| ) {
         return $path;
@@ -103,16 +104,17 @@ sub my_put {
     # decide if we need multipart upload or not
     my $size = _get_file_size($local);
     if ( $size > $UPLOAD_MAX ) {
-        _upload_multipart( $local, $remote, $size, $optional_params); 
-    } else {
-        _upload_single( $local, $remote, $optional_params);
+        _upload_multipart( $local, $remote, $size, $optional_params );
+    }
+    else {
+        _upload_single( $local, $remote, $optional_params );
     }
     return;
 }
 
 sub _upload_multipart {
-    my ($local, $remote, $remaining, $optional_params) = @_;
-    my ($buf, $session_id);
+    my ( $local, $remote, $remaining, $optional_params ) = @_;
+    my ( $buf, $session_id );
     my $offset = 0;
 
     open( my $fh, '<', $local ) or die "Could not open $local: $!";
@@ -125,78 +127,90 @@ sub _upload_multipart {
         if ($session_id) {
 
             # finish
-            if ($read < $UPLOAD_MAX) {
-                return _upload_session_finish($buf, $session_id, $offset, $remote);
+            if ( $read < $UPLOAD_MAX ) {
+                return _upload_session_finish( $buf, $session_id, $offset,
+                    $remote );
             }
 
             # append
             else {
-                unless (_upload_session_append($buf, $session_id, $offset)) {
+                unless ( _upload_session_append( $buf, $session_id, $offset ) )
+                {
                     print STDERR "ERROR:Dropbox-transport: could not append\n";
                     return;
                 }
                 $offset += $read;
             }
 
-        # start session
-        } else {
-            if ($session_id = _upload_session_start($buf)) {
+            # start session
+        }
+        else {
+            if ( $session_id = _upload_session_start($buf) ) {
                 $offset += $read;
-            } else {
+            }
+            else {
                 print STDERR "ERROR:Dropbox-transport: could not start\n";
                 return;
             }
         }
     }
     close($fh);
+    return;
 }
 
 sub _upload_session_start {
     my $data = @_;
 
     my $result = $dropbox->upload_session_start($data);
-    if ( defined($result->{'session_id'}) && $result->{'session_id'} ne '' ) {
-         return $result->{'session_id'};
+    if ( defined( $result->{'session_id'} ) && $result->{'session_id'} ne '' ) {
+        return $result->{'session_id'};
     }
 }
 
 sub _upload_session_append {
-    my ($data, $session_id, $offset) = @_;
+    my ( $data, $session_id, $offset ) = @_;
 
-    my $result = $dropbox->upload_session_append_v2($data, {
-        cursor => {
-            session_id => $session_id,
-            offset     => $offset
+    my $result = $dropbox->upload_session_append_v2(
+        $data,
+        {
+            cursor => {
+                session_id => $session_id,
+                offset     => $offset
             }
-        });
+        }
+    );
+    return 1;
 }
 
 sub _upload_session_finish {
-    my ($data, $session_id, $offset, $remote) = @_;
+    my ( $data, $session_id, $offset, $remote ) = @_;
 
-    my $result = $dropbox->upload_session_finish( $data, {
-        cursor => {
-            session_id => $session_id,
-            offset     => $offset
+    my $result = $dropbox->upload_session_finish(
+        $data,
+        {
+            cursor => {
+                session_id => $session_id,
+                offset     => $offset
             },
-        commit => {
-            path => $remote,
-            mode => 'add',
-            autorename => JSON::true,
-            mute => JSON::false
+            commit => {
+                path       => $remote,
+                mode       => 'add',
+                autorename => JSON::true,
+                mute       => JSON::false
             }
-        });
+        }
+    );
+    return 1;
 }
 
-
 sub _upload_single {
-    my ( $local, $remote, $optional_params) = @_;
+    my ( $local, $remote, $optional_params ) = @_;
     my $fh = IO::File->new($local);
     $remote = convert_path($remote);
 
     $dropbox->upload( $remote, $fh, $optional_params ) or die $dropbox->error;
     $fh->close;
-    return;
+    return 1;
 }
 
 sub _get_file_size {
@@ -212,9 +226,9 @@ sub my_get {
 
     $remote = convert_path($remote);
 
-    my $fh = IO::File->new($local, '>');
+    my $fh = IO::File->new( $local, '>' );
 
-    $dropbox->download($remote, $fh);
+    $dropbox->download( $remote, $fh );
 
     $fh->close;
 
@@ -236,27 +250,29 @@ sub my_ls {
 
     my $result = $dropbox->list_folder($path);
 
-    while($result) {
+    while ($result) {
 
-        foreach my $entry ( @{$result->{'entries'}} ) {
+        foreach my $entry ( @{ $result->{'entries'} } ) {
 
             my $name = $entry->{'name'};
             my $type = $entry->{'.tag'} eq 'folder' ? 'd' : '-';
             my $size = $entry->{'size'};
 
             $contents{$name} = {
-                'type'  => $type,
-                'size'  => ( $size ? $size : 1) ,
+                'type' => $type,
+                'size' => ( $size ? $size : 1 ),
             };
         }
 
         last unless $result->{'has_more'};
 
-        $result = $dropbox->list_folder_continue( $result->{'cursor'});
+        $result = $dropbox->list_folder_continue( $result->{'cursor'} );
     }
 
-    # The output must look like the results of "ls -l" & contain perms for Historical Reasons
-    my @ls = map { "$contents{$_}{'type'}rw-r--r-- X X X $contents{$_}{'size'} X X X $_" } sort keys %contents;
+# The output must look like the results of "ls -l" & contain perms for Historical Reasons
+    my @ls = map {
+        "$contents{$_}{'type'}rw-r--r-- X X X $contents{$_}{'size'} X X X $_"
+    } sort keys %contents;
 
     foreach my $line (@ls) {
         print "$line\n";
@@ -276,19 +292,21 @@ sub my_mkdir {
     # don't want to call an extra module...
     do {
         local *STDERR;
-        open STDERR, '>', File::Spec->devnull() or die "could not open STDERR: $!\n";
+        open STDERR, '>', File::Spec->devnull()
+          or die "could not open STDERR: $!\n";
         $dropbox->create_folder($path);
         close STDERR;
     };
 
-    if ($dropbox->error) {
-        my $json = JSON::XS->new->ascii->decode($dropbox->error);
+    if ( $dropbox->error ) {
+        my $json = JSON::XS->new->ascii->decode( $dropbox->error );
         if ( $json->{'error_summary'} =~ s@^path/conflict/folder@@ ) {
-             return;
-        } else {
+            return;
+        }
+        else {
             print STDERR $dropbox->error;
         }
-     }
+    }
     return;
 }
 
