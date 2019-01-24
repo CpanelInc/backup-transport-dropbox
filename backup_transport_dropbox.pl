@@ -112,50 +112,42 @@ sub my_put {
 
 sub _upload_multipart {
     my ($local, $remote, $remaining, $optional_params) = @_;
-    my ($fh, $data, $length, $session_id);
-    my $offset = 1;
+    my ($buf, $session_id);
+    my $offset = 0;
 
-    open( $fh, '<', $local ) or die "Could not open $local: $!";
+    open( my $fh, '<', $local ) or die "Could not open $local: $!";
     binmode($fh) or die "Could not set $local to binary mode: $!";
 
-    print "total:$remaining\n";
-    $remaining += 0;
-
     # read up to $UPLOAD_MAX at a time
-    while ( $length = read( $fh, $data, $UPLOAD_MAX ) ) {
+    while ( my $read = read( $fh, $buf, $UPLOAD_MAX ) ) {
 
-        print "read:$length\n";
-        $length += 0;
-        # we have a session
+        # do we have a session
         if ($session_id) {
-            # do we need to append or finish?
-            if ( $remaining > $UPLOAD_MAX ) {
-                # do append
-                print "append ";
-                _upload_session_append($data, $session_id, $offset);
-                $offset += $length;
-                $remaining = $remaining - $length;
-                print "remaining:$remaining offset:$offset\n";
-                $remaining += 0;
-                $offset += 0;
-            } else {
-                # do finish
-                print "finish ";
-                _upload_session_finish($data, $session_id, $offset, $remote);
-                $remaining = $remaining - $length;
-                print "remaining:$remaining offset:$offset\n";
+
+            # finish
+            if ($read < $UPLOAD_MAX) {
+                return _upload_session_finish($buf, $session_id, $offset, $remote);
             }
+
+            # append
+            else {
+                unless (_upload_session_append($buf, $session_id, $offset)) {
+                    print STDERR "ERROR:Dropbox-transport: could not append\n";
+                    return;
+                }
+                $offset += $read;
+            }
+
+        # start session
         } else {
-            # start session
-            print "start ";
-            $session_id = _upload_session_start($data);
-            $remaining = $remaining - $length;
-            print "remaining:$remaining offset:$offset\n";
-            $remaining += 0;
-            $offset += 0;
-         }
+            if ($session_id = _upload_session_start($buf)) {
+                $offset += $read;
+            } else {
+                print STDERR "ERROR:Dropbox-transport: could not start\n";
+                return;
+            }
+        }
     }
-    die "Failure reading $local:  $!" unless defined $length;
     close($fh);
 }
 
