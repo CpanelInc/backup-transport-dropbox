@@ -5,14 +5,16 @@
 # copyright@cpanel.net                                         http://cpanel.net
 # This code is subject to the cPanel license. Unauthorized copying is prohibited
 
+BEGIN {
+    unshift @INC, '/usr/local/share/perl5/';
+}
+
 use strict;
 use warnings;
 use IO::File;
 use WebService::Dropbox;
 
-BEGIN {
-    unshift @INC, '/usr/local/share/perl5/';
-}
+
 
 # variables
 our $VERSION = '1.03';
