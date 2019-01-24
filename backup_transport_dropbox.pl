@@ -97,7 +97,6 @@ sub convert_path {
 sub my_put {
     my ( $local, $remote, $host, $user, $password ) = @_;
     my $optional_params = { 'mode' => 'overwrite' };
-    my $fh = IO::File->new($local);
 
     $remote = convert_path($remote);
 
@@ -108,7 +107,6 @@ sub my_put {
     } else {
         _upload_single( $local, $remote, $optional_params);
     }
-    $fh->close;
     return;
 }
 
