@@ -159,7 +159,7 @@ sub _upload_multipart {
 }
 
 sub _upload_session_start {
-    my $data = @_;
+    my ($data) = @_;
 
     my $result = $dropbox->upload_session_start($data);
     if ( defined( $result->{'session_id'} ) && $result->{'session_id'} ne '' ) {
