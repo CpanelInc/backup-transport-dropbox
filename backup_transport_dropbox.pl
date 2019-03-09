@@ -18,7 +18,7 @@ use WebService::Dropbox;
 
 # variables
 our $VERSION = '1.03';
-our $UPLOAD_MAX = 1024 * 1024 * 32;  # dropbox requires 150M limit on single put, 145 to be safe
+our $UPLOAD_MAX = 1024 * 1024 * 148;  # dropbox requires 150M limit on single put, 148 to be safe
 
 # Create and setup our dropbox object
 my $dropbox = WebService::Dropbox->new(
