@@ -14,17 +14,15 @@ use warnings;
 use IO::File;
 use WebService::Dropbox;
 
-
-
 # variables
-our $VERSION = '1.04';
-our $UPLOAD_MAX = 1024 * 1024 * 148;  # dropbox requires 150M limit on single put, 148 to be safe
+our $VERSION    = '1.05';
+our $UPLOAD_MAX = 1024 * 1024 * 148;    # dropbox requires 150M limit on single put, 148 to be safe
 
 # Create and setup our dropbox object
 my $dropbox = WebService::Dropbox->new(
     {
-        key    => 'MY_APP_KEY',      # App Key
-        secret => 'MY_APP_SECRET'    # App Secret
+        key    => 'MY_APP_KEY',         # App Key
+        secret => 'MY_APP_SECRET'       # App Secret
     }
 );
 $dropbox->access_token('MY_ACCESS_TOKEN');
@@ -129,15 +127,13 @@ sub _upload_multipart {
         if ($session_id) {
 
             # finish
-            if ( $read < $UPLOAD_MAX ) {
-                return _upload_session_finish( $buf, $session_id, $offset,
-                    $remote );
+            if ( eof($fh) ) {
+                return _upload_session_finish( $buf, $session_id, $offset, $remote );
             }
 
             # append
             else {
-                unless ( _upload_session_append( $buf, $session_id, $offset ) )
-                {
+                unless ( _upload_session_append( $buf, $session_id, $offset ) ) {
                     print STDERR "ERROR:Dropbox-transport: could not append\n";
                     return;
                 }
@@ -271,10 +267,8 @@ sub my_ls {
         $result = $dropbox->list_folder_continue( $result->{'cursor'} );
     }
 
-# The output must look like the results of "ls -l" & contain perms for Historical Reasons
-    my @ls = map {
-        "$contents{$_}{'type'}rw-r--r-- X X X $contents{$_}{'size'} X X X $_"
-    } sort keys %contents;
+    # The output must look like the results of "ls -l" & contain perms for Historical Reasons
+    my @ls = map { "$contents{$_}{'type'}rw-r--r-- X X X $contents{$_}{'size'} X X X $_" } sort keys %contents;
 
     foreach my $line (@ls) {
         print "$line\n";
