@@ -7,7 +7,7 @@ Special thanks to [@Tim Mullin](https://github.com/timmullin) for helping me get
 
 ## Requirements
 ```
-cPanel 70+
+cPanel 78+
 CPAN WebService::Dropbox
 ```
 
