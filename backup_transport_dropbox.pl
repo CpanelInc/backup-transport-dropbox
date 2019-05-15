@@ -138,6 +138,7 @@ sub _upload_multipart {
                     return;
                 }
                 $offset += $read;
+                print STDOUT '.';
             }
 
             # start session
@@ -145,6 +146,7 @@ sub _upload_multipart {
         else {
             if ( $session_id = _upload_session_start($buf) ) {
                 $offset += $read;
+                print STDOUT '.';
             }
             else {
                 print STDERR "ERROR:Dropbox-transport: could not start\n";
