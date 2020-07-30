@@ -1,4 +1,16 @@
-# A cPanel custom backup transport for Dropbox
+# This project has been deprecated
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+
+## A cPanel custom backup transport for Dropbox
 > This script provides a method to automatically upload backups from your cPanel server to Dropbox, utilizing Dropbox's [API](https://www.dropbox.com/developers/documentation) via CPAN [WebService::Dropbox](http://search.cpan.org/~askadna/WebService-Dropbox-0.03/lib/WebService/Dropbox.pm), through the cPanel's [Custom Backup Transport](https://documentation.cpanel.net/display/66Docs/Custom+Backup+Destination+Guide). 
 
 The cPanel backup system provides lots of flexibility, and one of the awesome features is the ability to create custom backup transports. In cPanel, a backup transport is essentially a backup destination or method to move backups to a secondary/remote server for safe keeping. The custom backup transport feature allows you to specify a script which the backup system will pass arguments to; arguments common with uploading files in FTP, e.g. 'put $filename'. Reading over the documentation, it may at first appear a daunting task; however, today we'll walk you through the process by creating a backup destination utilizing Dropbox and their very thoroughly documented API.
