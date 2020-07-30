@@ -1,3 +1,5 @@
+## This project is no longer actively maintained or community supported.
+
 # A cPanel custom backup transport for Dropbox
 > This script provides a method to automatically upload backups from your cPanel server to Dropbox, utilizing Dropbox's [API](https://www.dropbox.com/developers/documentation) via CPAN [WebService::Dropbox](http://search.cpan.org/~askadna/WebService-Dropbox-0.03/lib/WebService/Dropbox.pm), through the cPanel's [Custom Backup Transport](https://documentation.cpanel.net/display/66Docs/Custom+Backup+Destination+Guide). 
 
